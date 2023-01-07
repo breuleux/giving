@@ -8,7 +8,7 @@ from itertools import count
 from reactivex import operators as rxop
 from reactivex.operators import NotSet
 
-PON = inspect.Parameter.POSITIONAL_ONLY
+PON = getattr(inspect.Parameter, "POSITIONAL_ONLY", None)
 
 
 def keyword_decorator(deco):
@@ -60,6 +60,7 @@ def lax_function(fn):
     glb = {}
     argdef = []
     argcall = []
+    at_kwonly = False
     for name, parameter in sig.parameters.items():
         kind = parameter.kind
         if kind is inspect.Parameter.VAR_KEYWORD:
@@ -70,8 +71,14 @@ def lax_function(fn):
 
         if kind is inspect.Parameter.VAR_POSITIONAL:
             name = f"*{name}"
+            at_kwonly = True
 
-        argcall.append(name)
+        if kind is inspect.Parameter.KEYWORD_ONLY:
+            if not at_kwonly:
+                argdef.append("*")
+            argcall.append(f"{name}={name}")
+        else:
+            argcall.append(name)
 
         if parameter.default is not parameter.empty:
             sym = gensym()

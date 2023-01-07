@@ -1,4 +1,6 @@
 import inspect
+import sys
+from textwrap import dedent
 
 import pytest
 
@@ -47,10 +49,15 @@ def test_lax_defaults():
     assert f(y=78) == singleton
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8), reason="requires python3.8 or higher")
 def test_lax_positional():
-    @lax_function
+    code = """
     def f(x, /, y):
         return x + y
+    """
+    glb = {}
+    exec(dedent(code), glb, glb)
+    f = lax_function(glb["f"])
 
     assert f(1, 2) == 3
     with pytest.raises(TypeError):
@@ -60,10 +67,15 @@ def test_lax_positional():
     assert f(1, y=2, x=800) == 3
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8), reason="requires python3.8 or higher")
 def test_lax_positional_2():
-    @lax_function
+    code = """
     def f(x, /):
         return x + 1
+    """
+    glb = {}
+    exec(dedent(code), glb, glb)
+    f = lax_function(glb["f"])
 
     assert f(2) == 3
     with pytest.raises(TypeError):
@@ -79,6 +91,24 @@ def test_lax_vararg():
         return sum(xs)
 
     assert f(2, 3, 4, z=8) == 9
+
+
+def test_lax_kwonly():
+    @lax_function
+    def f(*xs, y):
+        return sum(xs) * y
+
+    assert f(2, 3, 4, y=2, z=8) == 18
+
+
+def test_lax_kwonly2():
+    @lax_function
+    def f(*, y):
+        return y * y
+
+    with pytest.raises(TypeError):
+        assert f(5, z=8) == 25
+    assert f(y=5, z=8) == 25
 
 
 def test_lax_generator():
