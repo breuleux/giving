@@ -9,7 +9,7 @@ repository = "https://github.com/breuleux/giving"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-varname = "^0.8.0"
+varname = "^0.10.0"
 reactivex = "^4.0.0"
 
 [tool.poetry.dev-dependencies]
