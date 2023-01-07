@@ -296,7 +296,6 @@ def test_inherit_nested():
 
 def test_wrap():
     with given() as g:
-
         resultsaw = g.where("a")["a", "w"].accum()
 
         resultsw = []
