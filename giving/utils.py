@@ -1,10 +1,14 @@
 import fnmatch
 import functools
+import inspect
 import sys
 import types
+from itertools import count
 
 from reactivex import operators as rxop
 from reactivex.operators import NotSet
+
+PON = inspect.Parameter.POSITIONAL_ONLY
 
 
 def keyword_decorator(deco):
@@ -46,49 +50,52 @@ def lax_function(fn):
     # and other mappers that can be partially applied to the element dictionaries in an
     # observable stream.
 
-    if isinstance(fn, types.FunctionType):
-        KWVAR_FLAG = 8
-        co = fn.__code__
-        if not co.co_flags & KWVAR_FLAG:
-            if hasattr(co, "replace"):
-                newco = co.replace(
-                    # Let's lie and pretend it has **kwargs
-                    co_flags=co.co_flags | KWVAR_FLAG,
-                    # Add a dummy keyword argument with an illegal name
-                    co_varnames=(*co.co_varnames, "#"),
-                    # That dummy argument is a new local
-                    co_nlocals=co.co_nlocals + 1,
-                )
-            else:  # pragma: no cover
-                newco = types.CodeType(
-                    co.co_argcount,
-                    co.co_kwonlyargcount,
-                    co.co_nlocals + 1,
-                    co.co_stacksize,
-                    co.co_flags | KWVAR_FLAG,
-                    co.co_code,
-                    co.co_consts,
-                    co.co_names,
-                    (*co.co_varnames, "#"),
-                    co.co_filename,
-                    co.co_name,
-                    co.co_firstlineno,
-                    co.co_lnotab,
-                    co.co_freevars,
-                    co.co_cellvars,
-                )
+    idx = count()
 
-            newfn = types.FunctionType(
-                name=fn.__name__,
-                code=newco,
-                globals=fn.__globals__,
-                closure=fn.__closure__,
-            )
-            newfn.__defaults__ = fn.__defaults__
-            newfn.__kwdefaults__ = fn.__kwdefaults__
-            return newfn
+    def gensym():
+        return f"___G{next(idx)}"
 
-    return fn
+    sig = inspect.signature(fn)
+    last_kind = None
+    glb = {}
+    argdef = []
+    argcall = []
+    for name, parameter in sig.parameters.items():
+        kind = parameter.kind
+        if kind is inspect.Parameter.VAR_KEYWORD:
+            return fn
+
+        if last_kind is PON and kind is not PON:
+            argdef.append("/")
+
+        if kind is inspect.Parameter.VAR_POSITIONAL:
+            name = f"*{name}"
+
+        argcall.append(name)
+
+        if parameter.default is not parameter.empty:
+            sym = gensym()
+            glb[sym] = parameter.default
+            name += f"={sym}"
+
+        argdef.append(name)
+        last_kind = kind
+
+    if last_kind is PON:
+        argdef.append("/")
+
+    argdef.append(f"**{gensym()}")
+
+    fnsym = gensym()
+    glb[fnsym] = fn
+    wrapsym = gensym()
+
+    argdef = ",".join(argdef)
+    argcall = ",".join(argcall)
+    yf = "yield from " if inspect.isgeneratorfunction(fn) else ""
+    exec(f"def {wrapsym}({argdef}): return ({yf}{fnsym}({argcall}))", glb)
+
+    return functools.wraps(fn)(glb[wrapsym])
 
 
 class _Reducer:
