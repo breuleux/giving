@@ -292,10 +292,17 @@ class Giver:
         """
         num = next(global_count)
         self.produce({"$wrap": {"name": name, "step": "begin", "id": num}, **keys})
+        extra_keys = {}
         try:
-            yield
+            yield extra_keys
         finally:
-            self.produce({"$wrap": {"name": name, "step": "end", "id": num}, **keys})
+            self.produce(
+                {
+                    "$wrap": {"name": name, "step": "end", "id": num},
+                    **keys,
+                    **extra_keys,
+                }
+            )
 
     @contextmanager
     def wrap_inherit(self, name, **keys):
@@ -319,8 +326,8 @@ class Giver:
             keys: Key/value pairs to inherit.
         """
         with self.inherit(**keys):
-            with self.wrap(name):
-                yield
+            with self.wrap(name) as w:
+                yield w
 
     def produce(self, values):
         """Give the values dictionary."""

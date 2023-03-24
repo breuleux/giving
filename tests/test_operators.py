@@ -754,6 +754,22 @@ def test_wmap():
         assert results3 == []
 
 
+def test_wmap_extra_keys():
+    def wrap(x=0):
+        extra = yield
+        return x * extra["factor"]
+
+    with given() as gv:
+        results = gv.wmap("yes", wrap).accum()
+
+        with give.wrap("wow", x=99):
+            for i in range(10, 15):
+                with give.wrap("yes", x=i) as extra:
+                    extra["factor"] = 2
+
+        assert results == [20, 22, 24, 26, 28]
+
+
 def test_wmap_errors():
     def wrap_nogen(x=0):
         return x
