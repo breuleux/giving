@@ -903,7 +903,8 @@ def top(n=10, key=None):
 
 def variance(*args, **kwargs):
     return rxop.compose(
-        average_and_variance(*args, **kwargs), rxop.starmap(lambda avg, var: var)
+        average_and_variance(*args, **kwargs),
+        rxop.starmap(lambda avg, var: var),
     )
 
 

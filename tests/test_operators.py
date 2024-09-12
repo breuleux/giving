@@ -2,7 +2,8 @@ from types import SimpleNamespace as NS
 
 import pytest
 
-from giving import give, given, giver, operators as op
+from giving import give, given, giver
+from giving import operators as op
 
 TOLERANCE = 1e-6
 
@@ -416,9 +417,9 @@ def test_affix():
 
     with given() as gv:
         results = []
-        gv.pipe(
-            op.affix(b=gv.pipe(op.getitem("a"), op.map(lambda x: x * x)))
-        ).subscribe(results.append)
+        gv.pipe(op.affix(b=gv.pipe(op.getitem("a"), op.map(lambda x: x * x)))).subscribe(
+            results.append
+        )
 
         things(*values)
 
