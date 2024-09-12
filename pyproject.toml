@@ -2,7 +2,11 @@
 name = "giving"
 version = "0.4.3"
 description = "Reactive logging"
+authors = [
+    { name = "Olivier Breuleux", email = "breuleux@gmail.com" }
+]
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.8"
 dependencies = [
     "asttokens>=2.4.1",
